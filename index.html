@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Emoji Slot Machine</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    padding-top: 50px;
+    background-color: #fef6f0;
+  }
+  .slot-machine {
+    display: inline-block;
+    font-size: 50px;
+    border: 4px solid #333;
+    padding: 20px;
+    border-radius: 10px;
+    background-color: #fff;
+  }
+  .reels {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+  .reel-container {
+    width: 80px;
+    height: 80px;
+    overflow: hidden;
+    border: 2px solid #333;
+    margin: 0 5px;
+    border-radius: 8px;
+    background-color: #e0e0e0;
+    position: relative;
+  }
+  .reel {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: 0;
+    width: 100%;
+  }
+  .reel span {
+    height: 80px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  button {
+    font-size: 20px;
+    padding: 10px 20px;
+    cursor: pointer;
+  }
+  .message {
+    margin-top: 20px;
+    font-size: 24px;
+    font-weight: bold;
+  }
+  .coins {
+    margin-top: 10px;
+    font-size: 20px;
+  }
+  .win {
+    animation: bounce 0.5s ease 0s 3;
+  }
+  @keyframes bounce {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.3); }
+    100% { transform: scale(1); }
+  }
+</style>
+</head>
+<body>
+
+<h1>🎰 Emoji Slot Machine 🎰</h1>
+
+<div class="slot-machine">
+  <div class="reels">
+    <div class="reel-container"><div class="reel" id="reel1"></div></div>
+    <div class="reel-container"><div class="reel" id="reel2"></div></div>
+    <div class="reel-container"><div class="reel" id="reel3"></div></div>
+  </div>
+  <button id="spinButton">Spin! (-50 coins)</button>
+  <div class="message" id="message"></div>
+  <div class="coins" id="coins">💰 Coins: 1000</div>
+</div>
+
+<script>
+const emojis = ["🍬","🍧","🌷","🍄","🍀","🦋","🦄"];
+let coins = 1000;
+
+function spin() {
+  if (coins < 50) {
+    document.getElementById("message").textContent = "Not enough coins! 💔";
+    return;
+  }
+  coins -= 50;
+  document.getElementById("coins").textContent = `💰 Coins: ${coins}`;
+
+  const reels = [document.getElementById("reel1"), document.getElementById("reel2"), document.getElementById("reel3")];
+
+  // Fill reels with random emojis for scrolling effect
+  reels.forEach(reel => {
+    reel.innerHTML = "";
+    for (let i = 0; i < 20; i++) {
+      const span = document.createElement("span");
+      span.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+      reel.appendChild(span);
+    }
+  });
+
+  // Animate reels
+  reels.forEach((reel, idx) => {
+    const duration = 1500 + idx * 300; // staggered stop times
+    reel.style.transition = `transform ${duration}ms cubic-bezier(0.33, 1, 0.68, 1)`;
+    const finalIndex = Math.floor(Math.random() * emojis.length) + 10; // stop somewhere in the middle
+    reel.style.transform = `translateY(-${finalIndex * 80}px)`;
+    // Reset transform after animation
+    setTimeout(() => {
+      const finalEmoji = reel.children[finalIndex % emojis.length].textContent;
+      reel.innerHTML = `<span class="win">${finalEmoji}</span>`;
+    }, duration);
+  });
+
+  // Check win after longest reel animation
+  setTimeout(() => {
+    const finalEmojis = reels.map(reel => reel.querySelector("span").textContent);
+    const message = document.getElementById("message");
+    if (finalEmojis[0] === finalEmojis[1] && finalEmojis[1] === finalEmojis[2]) {
+      message.textContent = "🎉 JACKPOT! +500 coins! 🎉";
+      message.style.color = "green";
+      coins += 500;
+    } else if (finalEmojis[0] === finalEmojis[1] || finalEmojis[1] === finalEmojis[2] || finalEmojis[0] === finalEmojis[2]) {
+      message.textContent = "✨ Small win! +100 coins! ✨";
+      message.style.color = "blue";
+      coins += 100;
+    } else {
+      message.textContent = "Try again!";
+      message.style.color = "red";
+    }
+    document.getElementById("coins").textContent = `💰 Coins: ${coins}`;
+  }, 2500);
+}
+
+document.getElementById("spinButton").addEventListener("click", spin);
+
+// Initialize reels
+document.querySelectorAll(".reel").forEach(reel => {
+  reel.innerHTML = emojis.map(e => `<span>${e}</span>`).join("");
+});
+</script>
+
+</body>
+</html>
