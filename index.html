@@ -110,15 +110,31 @@ function spin() {
     document.getElementById("message").textContent = "Not enough coins! 💔";
     return;
   }
+
   coins -= 50;
   const coinDisplay = document.getElementById("coins");
   coinDisplay.textContent = `💰 Coins: ${coins}`;
 
   const reels = [document.getElementById("reel1"), document.getElementById("reel2"), document.getElementById("reel3")];
+  const message = document.getElementById("message");
+
+  // Reset reels to top
+  reels.forEach(reel => {
+    reel.style.transition = "none";
+    reel.style.transform = "translateY(0)";
+  });
+
+  // Show loading animation
+  message.textContent = "Spinning";
+  let dots = 0;
+  const dotInterval = setInterval(() => {
+    dots = (dots + 1) % 4;
+    message.textContent = "Spinning" + ".".repeat(dots);
+  }, 300);
 
   // Determine final emojis
   let finalEmojis = [];
-  let isJackpot = Math.random() < 0.05; // forced jackpot 5%
+  let isJackpot = Math.random() < 0.05;
   if (isJackpot) {
     const jackpotEmoji = emojis[Math.floor(Math.random() * emojis.length)];
     finalEmojis = [jackpotEmoji, jackpotEmoji, jackpotEmoji];
@@ -126,7 +142,7 @@ function spin() {
     for (let i = 0; i < 3; i++) finalEmojis.push(emojis[Math.floor(Math.random() * emojis.length)]);
   }
 
-  // Fill reels with many emojis for long spin
+  // Fill reels with many emojis for spin
   const reelLength = 60;
   const finalElements = [];
   reels.forEach((reel, idx) => {
@@ -139,52 +155,50 @@ function spin() {
     finalElements.push(reel.lastChild);
   });
 
-  // Animate reels
-  reels.forEach((reel, idx) => {
-    const duration = 3000 + idx * 500; // staggered long spins
-    reel.style.transition = `transform ${duration}ms cubic-bezier(0.33,1,0.68,1)`;
-    reel.style.transform = `translateY(-${(reelLength-1)*80}px)`;
-  });
-
-  // After spin finishes
+  // Start spin after short delay for suspense
   setTimeout(() => {
-    const message = document.getElementById("message");
-    reels.forEach(r => r.lastChild.classList.remove("win"));
-    let winOccurred = false;
-    const [a,b,c] = finalEmojis;
+    reels.forEach((reel, idx) => {
+      const duration = 3000 + idx*500;
+      reel.style.transition = `transform ${duration}ms cubic-bezier(0.33,1,0.68,1)`;
+      reel.style.transform = `translateY(-${(reelLength-1)*80}px)`;
+    });
 
-    // Big win: three same emojis (natural or forced)
-    if (a===b && b===c) {
-      message.textContent = "🎉 JACKPOT! +500 coins! 🎉";
-      message.style.color = "green";
-      coins += 500;
-      finalElements.forEach(el => el.classList.add("win"));
-      winOccurred = true;
-    } 
-    // Small win: exactly two match
-    else if ((a===b && a!==c) || (b===c && b!==a) || (a===c && a!==b)) {
-      message.textContent = "✨ Small win! +100 coins! ✨";
-      message.style.color = "blue";
-      coins += 100;
-      let matchIndexes = [];
-      if (a===b) matchIndexes=[0,1];
-      else if (b===c) matchIndexes=[1,2];
-      else if (a===c) matchIndexes=[0,2];
-      matchIndexes.forEach(idx => finalElements[idx].classList.add("win"));
-      winOccurred = true;
-    } 
-    // No win
-    else {
-      message.textContent = "Try again!";
-      message.style.color = "red";
-    }
+    // Show result after spin ends
+    setTimeout(() => {
+      clearInterval(dotInterval); // stop loading animation
+      reels.forEach(r => r.lastChild.classList.remove("win"));
+      let winOccurred = false;
+      const [a,b,c] = finalEmojis;
 
-    coinDisplay.textContent = `💰 Coins: ${coins}`;
-    if (winOccurred) {
-      coinDisplay.classList.add("flash");
-      setTimeout(()=>coinDisplay.classList.remove("flash"),500);
-    }
-  }, 3500);
+      if (a===b && b===c) { // Jackpot
+        message.textContent = "🎉 JACKPOT! +500 coins! 🎉";
+        message.style.color = "green";
+        coins += 500;
+        finalElements.forEach(el => el.classList.add("win"));
+        winOccurred = true;
+      } else if ((a===b && a!==c) || (b===c && b!==a) || (a===c && a!==b)) { // Small win
+        message.textContent = "✨ Small win! +100 coins! ✨";
+        message.style.color = "blue";
+        coins += 100;
+        let matchIndexes = [];
+        if (a===b) matchIndexes=[0,1];
+        else if (b===c) matchIndexes=[1,2];
+        else if (a===c) matchIndexes=[0,2];
+        matchIndexes.forEach(idx => finalElements[idx].classList.add("win"));
+        winOccurred = true;
+      } else { // No win
+        message.textContent = "Try again!";
+        message.style.color = "red";
+      }
+
+      coinDisplay.textContent = `💰 Coins: ${coins}`;
+      if(winOccurred){
+        coinDisplay.classList.add("flash");
+        setTimeout(()=>coinDisplay.classList.remove("flash"),500);
+      }
+
+    }, 3500); // wait until spin ends
+  }, 500);
 }
 
 document.getElementById("spinButton").addEventListener("click", spin);
