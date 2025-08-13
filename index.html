@@ -61,9 +61,10 @@
   .coins {
     margin-top: 10px;
     font-size: 20px;
+    transition: color 0.3s;
   }
   .win {
-    animation: bounce 0.5s ease 0s 3, sparkle 1s ease;
+    animation: bounce 0.5s ease 0s 3, sparkle 1s ease infinite;
   }
   @keyframes bounce {
     0% { transform: scale(1); }
@@ -75,6 +76,14 @@
     25% { text-shadow: 0 0 8px gold, 0 0 12px yellow; }
     50% { text-shadow: 0 0 12px gold, 0 0 20px yellow; }
     75% { text-shadow: 0 0 8px gold, 0 0 12px yellow; }
+  }
+  @keyframes coinFlash {
+    0% { color: #333; }
+    50% { color: gold; text-shadow: 0 0 10px gold, 0 0 20px yellow; }
+    100% { color: #333; }
+  }
+  .flash {
+    animation: coinFlash 0.5s ease;
   }
 </style>
 </head>
@@ -106,24 +115,26 @@ function spin() {
   document.getElementById("coins").textContent = `💰 Coins: ${coins}`;
 
   const reels = [document.getElementById("reel1"), document.getElementById("reel2"), document.getElementById("reel3")];
+  const coinDisplay = document.getElementById("coins");
 
-  // Decide if this spin is a jackpot (5%)
-  let isJackpot = Math.random() < 0.05;
-  let jackpotEmoji = "";
+  // Decide final emojis first
+  let finalEmojis = [];
+  let isJackpot = Math.random() < 0.05; // 5% jackpot
   if (isJackpot) {
-    jackpotEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+    const jackpotEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+    finalEmojis = [jackpotEmoji, jackpotEmoji, jackpotEmoji];
+  } else {
+    for (let i = 0; i < 3; i++) {
+      finalEmojis.push(emojis[Math.floor(Math.random() * emojis.length)]);
+    }
   }
 
   // Fill reels with random emojis for scrolling effect
-  reels.forEach(reel => {
+  reels.forEach((reel, idx) => {
     reel.innerHTML = "";
     for (let i = 0; i < 30; i++) {
       const span = document.createElement("span");
-      if (isJackpot) {
-        span.textContent = jackpotEmoji; // all the same emoji
-      } else {
-        span.textContent = emojis[Math.floor(Math.random() * emojis.length)];
-      }
+      span.textContent = (i === 29) ? finalEmojis[idx] : emojis[Math.floor(Math.random() * emojis.length)];
       reel.appendChild(span);
     }
   });
@@ -132,39 +143,52 @@ function spin() {
   reels.forEach((reel, idx) => {
     const duration = 2000 + idx * 400;
     reel.style.transition = `transform ${duration}ms cubic-bezier(0.33, 1, 0.68, 1)`;
-    const finalIndex = Math.floor(Math.random() * emojis.length) + 15;
-    reel.style.transform = `translateY(-${finalIndex * 80}px)`;
+    reel.style.transform = `translateY(-${29 * 80}px)`;
   });
 
   // Check win after longest reel animation
   setTimeout(() => {
-    const finalEmojis = reels.map(reel => {
-      const children = reel.children;
-      return children[children.length - 1].textContent;
-    });
-
     const message = document.getElementById("message");
+    // Clear previous win classes
+    reels.forEach(r => r.lastChild.classList.remove("win"));
+
+    let winOccurred = false;
 
     if (finalEmojis[0] === finalEmojis[1] && finalEmojis[1] === finalEmojis[2]) {
       message.textContent = "🎉 JACKPOT! +500 coins! 🎉";
       message.style.color = "green";
       coins += 500;
       reels.forEach(r => r.lastChild.classList.add("win"));
-    } else if (finalEmojis[0] === finalEmojis[1] || finalEmojis[1] === finalEmojis[2] || finalEmojis[0] === finalEmojis[2]) {
+      winOccurred = true;
+    } else if (
+      (finalEmojis[0] === finalEmojis[1] && finalEmojis[0] !== finalEmojis[2]) ||
+      (finalEmojis[1] === finalEmojis[2] && finalEmojis[1] !== finalEmojis[0]) ||
+      (finalEmojis[0] === finalEmojis[2] && finalEmojis[0] !== finalEmojis[1])
+    ) {
       message.textContent = "✨ Small win! +100 coins! ✨";
       message.style.color = "blue";
+
+      // determine which reels match
+      let matchingReels = [];
+      if (finalEmojis[0] === finalEmojis[1]) matchingReels = [0,1];
+      else if (finalEmojis[1] === finalEmojis[2]) matchingReels = [1,2];
+      else if (finalEmojis[0] === finalEmojis[2]) matchingReels = [0,2];
+
       coins += 100;
-      reels.forEach(r => {
-        if (r.lastChild.textContent === finalEmojis[0] || r.lastChild.textContent === finalEmojis[1]) {
-          r.lastChild.classList.add("win");
-        }
-      });
+      matchingReels.forEach(idx => reels[idx].lastChild.classList.add("win"));
+      winOccurred = true;
     } else {
       message.textContent = "Try again!";
       message.style.color = "red";
     }
 
     document.getElementById("coins").textContent = `💰 Coins: ${coins}`;
+
+    // Flash coin display if any win
+    if (winOccurred) {
+      coinDisplay.classList.add("flash");
+      setTimeout(() => coinDisplay.classList.remove("flash"), 500);
+    }
   }, 3000);
 }
 
